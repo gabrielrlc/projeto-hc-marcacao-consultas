@@ -1,6 +1,6 @@
-# Projeto HC - Marcação de Consultas
+# Projeto HC - Marcação de Exames
 
-Projeto desenvolvido para o sistema de marcação de consultas.
+Projeto desenvolvido para o sistema de marcação de exames.
 
 ## Integrantes
 
