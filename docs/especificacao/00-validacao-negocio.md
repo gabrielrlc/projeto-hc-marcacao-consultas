@@ -1,4 +1,4 @@
-# [NOME DO SISTEMA] — Documento de Validação e Especificação de Negócio
+# Portal de Agendamento e Triagem de Exames — Documento de Validação e Especificação de Negócio
 
 > **Padrão Oficial SETISD / HC-UFPE (HU Brasil) — Fase 0 (Alinhamento de Negócio)**  
 > **Público-alvo:** Profissionais das áreas envolvidas e Equipe de TI.  
@@ -8,13 +8,13 @@
 
 ## 1. Identificação do Projeto e Contexto Institucional
 
-| Campo | Descrição |
-| :--- | :--- |
-| **Nome do Sistema** | [Ex: Sistema de Gestão de Escalas / Gerenciador de Leitos UTI] |
-| **Área Solicitante / Cliente** | [Gerência, Unidade ou Setor no HC-UFPE] |
-| **Instância Superior Competente** | [Gerência à qual a área proponente esteja subordinada ou Superintendência] |
-| **Líder Técnico (SETISD)** | [Analista de TI desiginado para prestar suporte técnico] |
-| **Objetivo Estratégico HU Brasil** | [Vincular o projeto aos objetivos do HU Brasil] |
+| Campo                              | Descrição                                                                                                                                                                                  |
+| :--------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Nome do Sistema**                | Portal de Agendamento e Triagem de Exames                                                                                                                                                  |
+| **Área Solicitante / Cliente**     | Central de Marcação de Exames / HC-UFPE                                                                                                                                                    |
+| **Instância Superior Competente**  | Superintendência do HC-UFPE / SETISD                                                                                                                                                       |
+| **Líder Técnico (SETISD)**         | Tiago Ferrão                                                                                                                                                                               |
+| **Objetivo Estratégico HU Brasil** | Modernizar o fluxo de atendimento ao paciente, mitigando filas, otimizando o preenchimento de vagas ociosas e garantindo a rastreabilidade e priorização clínica no agendamento de exames. |
 
 ---
 
@@ -22,13 +22,13 @@
 
 > **Objetivo:** Dizer com clareza qual é o problema real de trabalho. Sem rodeios: o que hoje está quebrado, ineficiente ou gerando risco para o hospital?
 
-* **A Dor Central:**  
-  [Resumo direto da dor em 1 ou 2 frases. *Ex: A consolidação de informações essenciais é feita de forma descentralizada e manual, gerando retrabalho constante, atrasos crônicos e risco de perda de dados.*]
+- **A Dor Central:**  
+  O recebimento de pedidos de exames ocorre via Google Forms sem validação prévia, gerando um volume massivo de dados incorretos que a equipe precisa triar visualmente em planilhas, resultando em lentidão, filas subotimizadas e dependência da memória humana para priorização clínica e logística.
 
-* **Por que isso não pode continuar (Impactos Reais):**
-  - **Sobrecarga de Trabalho:** As chefias e equipes perdem horas redigitando dados e conferindo manualmente tarefas que poderiam ser automáticas.
-  - **Falta de Visibilidade:** A gestão não sabe em tempo real quem já entregou, quem está com pendências e onde estão os gargalos.
-  - **Risco Institucional e Legal:** Falta de histórico confiável para responder a auditorias, questionamentos de órgãos de controle ou conferências internas.
+- **Por que isso não pode continuar (Impactos Reais):**
+  - **Sobrecarga de Trabalho:** A equipe perde horas tentando localizar solicitações no AGHU porque os pacientes frequentemente digitam informações erradas no formulário (como o número de celular no lugar do número do exame).
+  - **Falta de Visibilidade e Subotimização:** A gestão não consegue cruzar dados rapidamente. Vagas urgentes (ex: desistências para o dia seguinte) acabam sendo perdidas ou alocadas para pacientes que moram muito longe (ex: no município de Pesqueira) e não têm tempo hábil de deslocamento.
+  - **Risco de Falha Humana na Prioridade:** Regras clínicas complexas (como a prioridade máxima para pacientes da Nefrologia em hemodiálise) dependem inteiramente da atenção e do conhecimento prévio do atendente ao olhar a planilha.
 
 ---
 
@@ -36,14 +36,14 @@
 
 > **Objetivo:** Mapear a realidade crua de como as equipes se viram no dia a dia para realizar essa tarefa hoje.
 
-* **Meios Utilizados Hoje:**  
-  [Descreva o que usam: papel impresso físico, anotações de prancheta, planilhas Excel locais no computador, trocas de e-mail ou mensagens de WhatsApp].
+- **Meios Utilizados Hoje:**  
+  Google Forms (para os pacientes enviarem pedidos), Planilhas do Google Drive (para controle da fila) e o sistema legado AGHU (para a efetivação final do agendamento).
 
-* **A Rotina Prática de Trabalho:**
-  1. **Início:** Alguém cria uma planilha do zero, copia o arquivo do mês anterior ou imprime formulários em papel para distribuir.
-  2. **Preenchimento:** Os responsáveis anotam as informações à mão ou digitam em suas planilhas, muitas vezes tendo que redigitar nomes de profissionais e locais que já existem nos sistemas hospitalares (como o AGHU).
-  3. **Conferência:** As folhas impressas ou arquivos vão para a chefia, que confere linha por linha no papel (com caneta) ou em telas dispersas, assinando manualmente cada página.
-  4. **Entrega e Arquivo:** As pastas físicas são transportadas até a área responsável ou enviadas por e-mail, ficando guardadas em gavetas ou pastas de rede sem garantia de qual versão é a final.
+- **A Rotina Prática de Trabalho:**
+  1. **Início:** O paciente sai da consulta com o ticket de solicitação impresso pelo AGHU e acessa um link do Google Forms para pedir a marcação.
+  2. **Preenchimento:** O paciente digita seus dados e o "número da solicitação",sujeito a errar, e anexa uma foto do pedido.
+  3. **Conferência (O Gargalo):** A equipe da Central de Marcação abre a planilha gerada pelo Forms, copia o número digitado pelo paciente e cola na tela de agendamento do AGHU. Muitas vezes, o sistema retorna "Solicitação não encontrada".
+  4. **Entrega e Arquivo:** Quando a solicitação está correta e a vaga é encontrada, a atendente agenda no AGHU, volta para a planilha do Drive e altera a cor da linha correspondente para "verde" (indicando que foi resolvido). Não há histórico automatizado ou rastreabilidade de fila.
 
 ---
 
@@ -51,13 +51,12 @@
 
 > **Objetivo:** Definir com clareza o que a solução digital deve trazer para eliminar a dor do processo atual.
 
-* **A Proposta de Valor:** [O que o sistema faz. *Ex: Centralizar todo o processo em um ambiente web simples, onde os dados já nascem integrados com as bases oficiais, o preenchimento é validado na hora e a tramitação ocorre com um clique.*]
-* **Ganhos Práticos Imediatos:**
-  - Fim do papel e das assinaturas manuais físicas.
-  - Alerta automático de erros ou inconsistências no momento da digitação.
-  - Assinatura eletrônica segura com registro de quem fez, quando aprovou e o que alterou.
-  - Painel de controle em tempo real para a gestão acompanhar entregas e pendências.
-  - Histórico guardado, inviolável e fácil de consultar a qualquer momento.
+- **A Proposta de Valor:** Substituir as planilhas e formulários improvisados por um Portal que cruza e valida os dados instantaneamente com o AGHU, apresentando para a equipe uma fila de espera já mastigada, limpa e organizada por prioridade clínica e logística.
+- **Ganhos Práticos Imediatos:**
+  - Fim das consultas frustradas no AGHU por números de solicitação inválidos.
+  - Organização automática da fila baseada em regras reais (clínica, município, idade).
+  - Substituição do controle visual ("pintar linha de verde") por um painel de status (Aguardando, Agendado, Cancelado).
+  - Alerta automático que impede o agendamento simultâneo de exames conflitantes para o mesmo paciente.
 
 ---
 
@@ -65,56 +64,55 @@
 
 > **Objetivo:** Explicar em linguagem direta como o usuário vai interagir com o sistema, resolvendo a dor do processo manual de ponta a ponta.
 
-* **1. Os dados já vêm prontos:** O usuário não precisa mais recadastrar pessoas, setores ou cargos do zero. Ao abrir a tela, a lista oficial da sua equipe e local de trabalho já está carregada.
-* **2. Preenchimento rápido com travas contra erros:** O responsável digita ou seleciona as informações direto na tela. Se tentar lançar dados conflitantes (ex: duplicidade de horários ou campos obrigatórios em branco), o próprio sistema avisa antes de salvar.
-* **3. Aprovação com um clique:** Concluída a digitação, a chefia confere tudo em uma tela unificada e aprova eletronicamente. O sistema registra automaticamente quem aprovou, data e hora, travando contra alterações indevidas.
-* **4. Informação pronta e disponível:** A gestão acompanha em tempo real um painel mostrando quem já entregou e quem está pendente. A versão oficial homologada fica acessível para consulta imediata de quem tem direito, sem necessidade de procurar papéis ou cobrar por telefone.
+- **1. Os dados já vêm prontos (e certos):** Ao acessar o novo portal, o paciente digita o número da sua solicitação. O sistema confere na mesma hora com o banco de dados oficial do hospital. Se não existir, ele não consegue enviar. Se existir, o sistema já puxa o nome, a especialidade e o município sozinhos.
+- **2. Priorização Automática:** A solicitação cai na tela da Central de Marcação não mais como uma linha cronológica solta, mas já ranqueada. O sistema identifica automaticamente, por exemplo, que aquele pedido veio da "Nefrologia" e o joga para o topo da fila de ultrassonografia urinária.
+- **3. Sugestão Inteligente de Vagas:** Se uma vaga for aberta para a manhã seguinte, o sistema oculta da fila os pacientes de municípios distantes (como Pesqueira ou Sirinhaém) e exibe apenas aqueles da Região Metropolitana com tempo hábil de chegada.
+- **4. Informação pronta e disponível:** A equipe realiza o agendamento no AGHU e, com um clique no novo portal, muda o status do paciente para "Agendado", finalizando o fluxo com total rastreabilidade.
 
 ---
 
 ## 6. Quem Participa do Processo (Atores: Como Faz Hoje vs. Como Fará no Sistema)
 
-| Ator / Perfil no Hospital | O que faz HOJE (Rotina Manual) | O que passará a fazer no NOVO SISTEMA | O que NÃO poderá fazer |
-| :--- | :--- | :--- | :--- |
-| **Área Gestora do Processo** *(Ex: Unidade de Pessoal, Farmácia Central, Regulação)* | Cobra prazos por telefone/e-mail, confere pilhas de papel ou junta dezenas de planilhas dispersas. | Habilita os períodos de trabalho, cadastra regras gerais, publica o resultado final e acompanha o painel geral de pendências em tempo real. | Não preenche dados rotineiros operacionais de setores individuais. |
-| **Profissional do Setor / Executante** *(Quem realiza o atendimento ou rotina na ponta)* | Preenche formulário impresso ou Excel local, correndo risco de esquecer dados ou duplicar lançamentos. | Lança os dados direto no sistema com validações em tempo real e encaminha a sua parte para conferência da chefia. | Não visualiza nem altera dados de setores que não sejam de sua alçada. |
-| **Chefia Imediata / Responsável pelo Setor** *(Ex: Chefia de Unidade ou Setor)* | Confere folhas rubricadas à mão na mesa física, assina no papel e leva as pastas fisicamente. | Visualiza em uma tela única o trabalho da sua equipe, faz ajustes rápidos e aprova eletronicamente com um clique. | Não pode enviar lotes parciais ou com pendências em aberto. |
-| **Gestão / Coordenação Superior** *(Ex: Chefia de Divisão ou Gerência* | Não tem visão em tempo real das entregas; depende de relatórios manuais solicitados e demorados. | Acompanha indicadores gerais em tempo real (painel executivo com taxas de cumprimento de prazos e pendências). | Acesso estritamente para visualização gerencial (não edita registros operacionais). |
-| **Público / Usuário do Serviço** *(Colaboradores do hospital, pacientes ou cidadãos)* | Precisa ligar, mandar e-mail ou ir presencialmente ao setor para obter uma informação ou comprovante. | Consulta com agilidade pelo portal, pesquisando por nome ou setor, com rapidez e transparência garantida. | Não tem acesso a dados restritos ou confidenciais. |
+| Ator / Perfil no Hospital                            | O que faz HOJE (Rotina Manual)                                                                                                 | O que passará a fazer no NOVO SISTEMA                                                                                       | O que NÃO poderá fazer                                                                                                     |
+| :--------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------- |
+| **Central de Marcação** _(Ex: Maíra, Larissa, Tati)_ | Fica alternando entre Excel e AGHU. Copia números, testa um por um, e muda a cor da linha da planilha para avisar que agendou. | Acessa um painel único com a fila de pedidos já validada e organizada por prioridade. Confirma o agendamento com um clique. | Não poderá agendar automaticamente no AGHU por dentro do portal satélite (limitação técnica da sede em Brasília)[cite: 1]. |
+| **Paciente / Usuário**                               | Preenche Google Forms manualmente, muitas vezes errando o número do pedido e enviando dados inúteis.                           | Digita seu código no Portal Web e vê seus dados serem carregados automaticamente para confirmação.                          | Não envia pedidos com códigos inválidos ou inventados.                                                                     |
+| **Gestão / Coordenação Superior**                    | Não tem visão de gargalos. Depende de perguntar para a equipe quantas vagas sobraram e qual o tamanho da fila no Forms.        | Acompanha um painel que mostra o tamanho exato da fila validada por exame, tempo de espera médio e capacidade ociosa.       | Não preenche nem altera a ordem clínica da fila manualmente.                                                               |
 
 ---
 
 ## 7. Regras de Negócio Inegociáveis (RNs)
 
-* **RN-01 (Identificação Funcional Única):** O profissional é identificado exclusivamente pela sua matrícula funcional (SIAPE). Para preservar a privacidade e evitar riscos de vazamento, dados pessoais sensíveis desnecessários (como CPF) não são coletados nem expostos no sistema.
-* **RN-02 (Prevenção de Duplicidade e Choques):** O sistema impede e bloqueia que a mesma pessoa seja alocada em dois setores, turnos ou atendimentos conflitantes no mesmo horário, eliminando de raiz o risco das planilhas paralelas manuais.
-* **RN-03 (Preservação e Imutabilidade do Histórico):** O fechamento de um período ou a abertura de um novo ciclo nunca apaga, altera ou sobrescreve informações passadas. Registros homologados tornam-se imutáveis para garantir respaldo em auditorias e consultas futuras.
-* **RN-04 (Homologação em Bloco / Entrega Completa):** A chefia de unidade só pode homologar e encaminhar para a gestão central o lote 100% completo de todos os seus setores subordinados. O sistema bloqueia entregas parciais ou com pendências não resolvidas.
-* **RN-05 (Autenticação Institucional Obrigatória):** O acesso interno para preenchimento, conferência e aprovação exige login institucional com a conta de rede do hospital, vinculando a autoria e data/hora de cada ação realizada.
-* **RN-06 (Transparência Ativa com Privacidade):** Na consulta pública ou da equipe, o sistema exibe apenas o nome completo, identificação funcional e a informação oficial aprovada, garantindo publicidade dos atos administrativos em conformidade com as diretrizes de privacidade.
+- **RN-01 (Validação Obrigatória na Entrada):** O sistema impede que qualquer paciente entre na fila de espera sem que o seu "Número de Solicitação" seja positivamente validado e encontrado na base de leitura do AGHU no momento exato do cadastro.
+- **RN-02 (Soberania do AGHU):** Como o banco oficial do hospital bloqueia qualquer operação de inserção externa[cite: 1], a gravação final do agendamento sempre ocorrerá diretamente no AGHU pelo funcionário. O sistema atua como organizador prévio e espelho[cite: 1].
+- **RN-03 (Fila de Prioridade Dinâmica):** A ordem de atendimento não será apenas cronológica (quem pediu primeiro). Pacientes sinalizados com prioridades específicas (como nefrologia para vias urinárias) ultrapassam automaticamente solicitações ambulatoriais de rotina.
+- **RN-04 (Trava de Deslocamento - Logística):** Consultas ou exames agendados em caráter de urgência para o dia seguinte não poderão ser atribuídos a pacientes cujo CEP/Município cadastrado impeça o deslocamento em tempo hábil até as dependências do HC.
+- **RN-05 (Impedimento de Conflitos):** O sistema deve analisar exames que não podem ser feitos no mesmo dia ou momento pelo mesmo paciente, emitindo um alerta de choque de horário para o atendente.
 
 ---
 
 ## 8. Painel de Gestão e Indicadores Estratégicos (KPIs)
 
-O sistema deve disponibilizar painel gerencial hierárquico (cada chefia enxerga o seu escopo) com os seguintes indicadores de negócio:
-1. **Taxa de Cumprimento de Prazos:** Acompanhamento percentual e quantitativo em tempo real de quais setores e unidades já concluíram suas entregas dentro do calendário oficial, eliminando a necessidade de cobranças manuais por telefone.
-2. **Mapa de Pendências e Atrasos:** Listagem imediata de unidades ou setores que ainda estão com preenchimento aberto, rascunho pendente ou com prazo vencido, permitindo atuação pontual da liderança.
-3. **Detecção de Inconsistências:** Alerta visual automático para profissionais ativos que não possuem alocação ou registro no ciclo vigente, evitando esquecimentos ou desvios de planejamento.
+O sistema deve disponibilizar um painel gerencial em tempo real com os seguintes indicadores de negócio:
+
+1. **Taxa de Rejeição e Validação:** Volume de tentativas de agendamentos inválidos que o sistema barrou automaticamente (evitando retrabalho da equipe).
+2. **Tempo Médio na Fila por Especialidade:** Mapeamento de quais tipos de exame (ex: Ultrassonografia Urinária vs. Mamografia) possuem os maiores gargalos e tempos de espera.
+3. **Mapeamento Geográfico de Ociosidade:** Visualização da correlação entre abstenções/desistências e o município de origem do paciente, permitindo melhorar os critérios de tempo de deslocamento.
 
 ---
 
 ## 9. Matriz de Pontos de Decisão (Gabinete / Gestão do Negócio)
 
-> *Itens que dependem de confirmação dos gestores do hospital antes da conclusão:*
+> _Itens que dependem de confirmação dos gestores do hospital antes da conclusão:_
 
-| # | Ponto a Decidir | Impacto no Processo | Quem deve decidir? | Status / Definição |
-| :-: | :--- | :--- | :--- | :--- |
-| **1** | **Data Limite Oficial:** Até qual dia do período os setores devem fechar o preenchimento e assinar? | Define a regra do sistema para disparar alertas preventivos e travar edições intempestivas. | Gestão Central / Chefias | 🟡 Em definição |
-| **2** | **Substituição de Chefia:** Qual o critério para assinatura quando a chefia titular estiver de férias ou afastada? | Evita o travamento da homologação em bloco da unidade inteira por ausência de um único responsável. | Gestão da Área | 🟡 Em definição |
-| **3** | **Retificação pós-Homologação:** Qual é o rito formal para reabrir e corrigir dados já aprovados oficialmente? | Define se haverá solicitação formal de reabertura com justificativa gravada ou ajuste restrito à gestão central. | Gestão Central | 🟡 Em definição |
+|   #   | Ponto a Decidir                                                                                                                                                 | Impacto no Processo                                                                                                  | Quem deve decidir?                  | Status / Definição |
+| :---: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------- | :---------------------------------- | :----------------- |
+| **1** | **Pesos de Prioridade Clínica:** Quais são os pesos numéricos oficiais para classificar prioridades (ex: Nefrologia vale peso 10, Retorno Ambulatorial vale 2)? | Define a matemática do algoritmo que ordenará a fila de pacientes de forma automática.                               | Gestão Médica / Central de Marcação | 🟡 Em definição    |
+| **2** | **Raio de Deslocamento:** Qual a distância máxima em quilômetros (ou municípios de corte) para ser elegível a uma vaga de "amanhã cedo"?                        | Impede que a equipe perca tempo ligando para pacientes que não conseguirão chegar a tempo no hospital.               | Gestão Central / Regulação Interna  | 🟡 Em definição    |
+| **3** | **Integração de Notificações:** O status de "Agendado" no painel da equipe deverá disparar automaticamente um aviso (WhatsApp/SMS) para o paciente?             | Determina a necessidade de contratar e integrar serviços de mensageria externa ao banco local da aplicação satélite. | TI (SETISD) / Diretoria             | 🟡 Em definição    |
 
 ---
+
 ---
 
 # 📘 GUIA METODOLÓGICO: COMO ESTE DOCUMENTO SE INTERLIGA AOS DEMAIS ARQUIVOS DO PROJETO
@@ -125,47 +123,24 @@ O sistema deve disponibilizar painel gerencial hierárquico (cada chefia enxerga
 ### A Linha do Tempo: A Separação entre "Fase de Negócio" e "Fase de Engenharia"
 
 Em qualquer projeto de software hospitalar existem dois mundos que precisam se comunicar com perfeição:
-1. **O Mundo do Negócio (Chefias, Áreas Solicitantes, Governança, Direção):** Não devem ser expostos a termos técnicos de TI (bancos de dados, endpoints, JSON, status HTTP, docker, etc.). Eles precisam discutir *processos, dores reais, prazos, responsabilidades e regras*.
+
+1. **O Mundo do Negócio (Chefias, Áreas Solicitantes, Governança, Direção):** Não devem ser expostos a termos técnicos de TI (bancos de dados, endpoints, JSON, status HTTP, docker, etc.). Eles precisam discutir _processos, dores reais, prazos, responsabilidades e regras_.
 2. **O Mundo da Engenharia (Desenvolvedores e Testes):** Precisam de tabelas relacionais, tipos de dados estritos, rotas de API seguras e casos de uso testáveis.
 
 Este documento (`00-validacao-negocio.md`) funciona como a **Ponte Oficial** entre esses dois mundos:
 
 ```text
                ┌────────────────────────────────────────────────────────┐
-               │         00-VALIDAÇÃO E FLUXO DE NEGÓCIO (ESTE ARQUIVO)  │
+               │         00-VALIDAÇÃO E FLUXO DE NEGÓCIO (ESTE ARQUIVO) │
 FASE 1         │   Linguagem humana, fluxos e regras reais de negócio.  │
 (Negócio)      │   Validado e assinado pelas Chefias e Direção do HC.   │
                └───────────────────────────┬────────────────────────────┘
                                            │
                  ┌─────────────────────────┴─────────────────────────┐
-                 ▼ (Uma vez aprovado, a TI desdobra tecnicamente)     ▼
+                 ▼ (Uma vez aprovado, a TI desdobra tecnicamente)    ▼
                ┌────────────────────────────────────────────────────────┐
-FASE 2         │            ARTEFATOS DE ESPECIFICAÇÃO TÉCNICA           │
+FASE 2         │            ARTEFATOS DE ESPECIFICAÇÃO TÉCNICA          │
 (Engenharia)   │   01-visao.md  →  02-requisitos.md  →  03-casos-uso.md │
                │   04-modelo-dados.md  →  05-interfaces  →  SPEC.md     │
                └────────────────────────────────────────────────────────┘
 ```
-
----
-
-### Como cada seção deste documento alimenta a documentação técnica:
-
-| Seção deste Documento de Negócio | O que ela entrega para a documentação técnica? | Arquivo de Destino |
-| :--- | :--- | :--- |
-| **Seção 2 (O Problema que Queremos Resolver)** | Define a motivação institucional, os riscos do modelo atual e a justificativa do projeto. | [01-visao.md](01-visao.md) *(Problema e Escopo)* |
-| **Seção 3 (Como o Processo Funciona Hoje)** | Serve de base para mapear os processos manuais que serão substituídos e os dados legados. | [01-visao.md](01-visao.md) *(Cenário Atual)* |
-| **Seção 4 (O Que a Nova Solução Deve Entregar)** | Define os objetivos do produto e os ganhos práticos que orientam a entrega de valor. | [01-visao.md](01-visao.md) *(Visão de Futuro)* |
-| **Seção 5 (Como Será o Trabalho no Novo Sistema)** | Detalha as etapas práticas do usuário na tela, que viram os fluxos e cenários de uso do sistema. | [02-requisitos.md](02-requisitos.md) e [03-casos-uso.md](03-casos-uso.md) *(Casos de Uso e Fluxos)* |
-| **Seção 6 (Quem Participa do Processo)** | Define os perfis de acesso, permissões de cada papel e o modelo de autorização local. | [02-requisitos.md](02-requisitos.md) e [03-casos-uso.md](03-casos-uso.md) *(Atores e RBAC)* |
-| **Seção 7 (Regras de Negócio Inegociáveis)** | É convertida diretamente em requisitos funcionais estritos e validações de backend. | [02-requisitos.md](02-requisitos.md) *(Requisitos Funcionais - RFs)* |
-| **Seção 8 (Painel de Gestão e Indicadores)** | Dá origem às consultas analíticas de acompanhamento, relatórios e telas gerenciais. | [05-interfaces.md](05-interfaces.md) *(Protótipos e Dashboards)* |
-| **Seção 9 (Matriz de Pontos de Decisão)** | Orienta os parâmetros de configuração e regras que alimentam as tarefas de implementação. | [SPEC.md](SPEC.md) *(Definições e Tarefas)* |
-
----
-
-### A Regra de Ouro do Processo no SETISD:
-
-1. **Início do Projeto (Fase de Negócio):** O profissional de TI preenche este documento junto com os responsáveis pela área de negócio em reuniões de alinhamento, validando o problema real, os fluxos práticos e as decisões pendentes.
-2. **Desenvolvimento (Fase de Engenharia):** Com este documento aprovado pelas partes envolvidas, a equipe de desenvolvimento tem total clareza técnica para elaborar os artefatos de `01` a `06` e programar a solução com segurança e sem retrabalho.
-
-**Resultado:** O cliente hospitalar participa ativamente sem ser sobrecarregado com termos técnicos, e a equipe de TI constrói exatamente o que o hospital precisa.
