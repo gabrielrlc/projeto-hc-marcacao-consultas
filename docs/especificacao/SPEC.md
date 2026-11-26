@@ -63,7 +63,7 @@ As definições detalhadas estão distribuídas nos seguintes documentos:
 - [ ] `[TASK-008]` **(Gabriel)** Implementar motor determinístico de priorização clínica (score + justificativa explicável lendo `regras_prioridade`) e filtro geográfico operacional (Capital/RMR/Interior/TFD) + testes `pytest`.
 - [ ] `[TASK-009]` **(Gabriel)** Implementar detector de conflitos, preparo e janelas de retorno (cruzamento de exames do mesmo prontuário contra `incompatibilidades_exames` e `regras_exames`: colonoscopia × sangue, ressonância × oftalmo, espirometria ≤ 10d, INR ≤ 72h, jejum/diabético) + testes `pytest`.
 - [ ] `[TASK-010]` **(Gabriel)** Implementar endpoints `/api/exames/*` (`GET /fila`, `GET /fila/{id}`, busca ativa por prontuário `GET /aghu/buscar`, `PATCH /vincular-solicitacao` e controle de confirmação 24h `PATCH /fila/{id}/status` com `audit_logs`) + testes `pytest`.
-- [ ] `[TASK-011]` **(Arthur)** Implementar endpoints `GET /api/dashboard/kpis` e `GET /api/admin/audit-logs` + testes `pytest`.
+- [x] `[TASK-011]` **(Arthur)** Implementar endpoints `GET /api/dashboard/kpis` e `GET /api/admin/audit-logs` + testes `pytest`.
 
 ### Fase 3: Interface Web (Frontend Vue 3 + Pinia + Tailwind)
 - [ ] `[TASK-012]` **(Pedro)** Criar tipos TypeScript (`frontend/src/types/exames.ts`) e stores Pinia (`exames.ts`, `regras.ts`, `dashboard.ts`).
