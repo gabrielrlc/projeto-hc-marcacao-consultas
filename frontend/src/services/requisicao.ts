@@ -6,6 +6,13 @@ export function mensagemErro(erro: unknown, padrao = 'Falha na comunicação com
   if (axios.isAxiosError(erro)) {
     const detail = erro.response?.data?.detail;
     if (typeof detail === 'string' && detail.trim()) return detail;
+    // 422 do FastAPI/Pydantic: lista de erros de validação.
+    if (Array.isArray(detail) && detail.length > 0) {
+      return detail
+        .map((item) => String(item?.msg ?? item).replace(/^Value error, /, ''))
+        .join(' ');
+    }
+    if (erro.response?.status === 403) return 'Seu perfil não tem permissão para esta operação.';
   }
   return padrao;
 }
