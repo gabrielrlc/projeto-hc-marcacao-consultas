@@ -48,7 +48,8 @@ ALEMBIC_INI_PATH = REPO_ROOT / "alembic.ini"
 ALEMBIC_DIR_PATH = REPO_ROOT / "alembic"
 
 PREVIOUS_REVISION = "8a2efbe37bb6"
-HEAD_REVISION = "c4f9b2a1e830"
+FILA_TABLES_REVISION = "c4f9b2a1e830"
+HEAD_REVISION = "d7e3a9c41f02"
 
 EXPECTED_NEW_TABLES = {
     "importacoes_forms",
@@ -203,7 +204,11 @@ def test_alembic_cadeia_de_revisoes() -> None:
 
     head_rev = script.get_revision(HEAD_REVISION)
     assert head_rev is not None
-    assert head_rev.down_revision == PREVIOUS_REVISION
+    assert head_rev.down_revision == FILA_TABLES_REVISION
+
+    fila_rev = script.get_revision(FILA_TABLES_REVISION)
+    assert fila_rev is not None
+    assert fila_rev.down_revision == PREVIOUS_REVISION
 
 
 def test_alembic_upgrade_downgrade_e_reupgrade_sqlite(tmp_path: Path) -> None:

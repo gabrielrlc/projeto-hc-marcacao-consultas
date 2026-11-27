@@ -109,12 +109,13 @@ if os.path.exists(assets_dir):
 if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 # Roteadores da API
-from .routers import paciente, auth, admin, health, regras
+from .routers import paciente, auth, admin, health, regras, importacoes
 app.include_router(health.router)
 app.include_router(paciente.router)
 app.include_router(auth.router)
 app.include_router(admin.router)
 app.include_router(regras.router)
+app.include_router(importacoes.router)
 
 @app.get("/{full_path:path}")
 async def serve_frontend(full_path: str):
