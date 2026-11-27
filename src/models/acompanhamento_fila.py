@@ -189,6 +189,10 @@ class AcompanhamentoFila(Base):
         String(120),
         nullable=True,
     )
+    idade_informada: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+    )
     status_higienizacao: Mapped[str] = mapped_column(
         String(32),
         nullable=False,
