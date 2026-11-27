@@ -7,6 +7,8 @@ import Configuracoes from '../views/Configuracoes.vue';
 import Exemplos from '../views/Exemplos.vue';
 import Pacientes from '../views/Pacientes.vue';
 import FilaExames from '../views/FilaExames.vue';
+import ImportacaoForms from '../views/ImportacaoForms.vue';
+import RegrasConfiguracao from '../views/RegrasConfiguracao.vue';
 
 const routes = [
   {
@@ -35,6 +37,18 @@ const routes = [
     path: '/fila',
     name: 'Fila de Exames',
     component: FilaExames,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/importacao',
+    name: 'Importação do Forms',
+    component: ImportacaoForms,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/regras',
+    name: 'Regras da Fila',
+    component: RegrasConfiguracao,
     meta: { requiresAuth: true },
   },
   {
