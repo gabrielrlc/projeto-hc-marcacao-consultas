@@ -87,6 +87,11 @@ o conteúdo nem modificar o registro.
 tabelas de desenvolvimento preexistentes. O downgrade mantém a tabela e os eventos
 para respeitar a trilha imutável.
 
+A revisão de merge `f011d7e3a901` reúne a auditoria (`e7a011d4b920`) e a idade
+informada na fila (`d7e3a9c41f02`) em uma única ponta Alembic. Ela não altera
+schema ou dados: permite atualizar bancos novos ou posicionados em qualquer uma
+das duas revisões publicadas usando `alembic upgrade head`.
+
 ---
 
 ## 3. Integrações de Software e Hardware

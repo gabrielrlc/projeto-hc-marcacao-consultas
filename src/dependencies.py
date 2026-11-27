@@ -14,6 +14,8 @@ from .providers.interfaces.dashboard_provider_interface import DashboardProvider
 from .providers.implementations.dashboard_sqlite_provider import DashboardSqliteProvider
 from .providers.interfaces.auditoria_provider_interface import AuditoriaProviderInterface
 from .providers.implementations.auditoria_sqlite_provider import AuditoriaSqliteProvider
+from .providers.interfaces.fila_provider_interface import FilaProviderInterface
+from .providers.implementations.fila_sqlite_provider import FilaSqliteProvider
 
 
 def get_dashboard_provider(
@@ -77,3 +79,10 @@ def get_exame_provider(strategy: str) -> Callable[..., ExameProviderInterface]:
         return _get_exame_csv_provider
     else:
         raise ValueError(f"Estratégia de provedor desconhecida: {strategy}")
+
+
+def get_fila_provider(
+    session: AsyncSession = Depends(get_app_db_session)
+) -> FilaProviderInterface:
+    """Instancia o provedor da fila de exames sobre o SQLite local da aplicação."""
+    return FilaSqliteProvider(session=session)

@@ -15,6 +15,15 @@ load_dotenv()
 logger = logging.getLogger("config")
 
 
+def _parse_lista_env(nome_variavel: str, valor_padrao: str = "") -> List[str]:
+    """
+    Lê uma variável de ambiente com valores separados por vírgula e retorna a
+    lista de itens não vazios (sem espaços nas extremidades).
+    """
+    bruto = os.getenv(nome_variavel, valor_padrao)
+    return [item.strip() for item in bruto.split(",") if item.strip()]
+
+
 class Settings:
     # 1. Configurações do Servidor
     ENV: str = os.getenv("ENV", "development").lower()
@@ -26,6 +35,7 @@ class Settings:
 
     # 2. Provedores e Bancos de Dados
     PACIENTE_PROVIDER_TYPE: str = os.getenv("PACIENTE_PROVIDER_TYPE", "POSTGRES").upper()
+    EXAME_PROVIDER_TYPE: str = os.getenv("EXAME_PROVIDER_TYPE", "CSV").strip().upper()
     APP_DB_URL: str = os.getenv("APP_DB_URL", "sqlite+aiosqlite:///data/app.db")
     POSTGRES_DSN: str = os.getenv("POSTGRES_DSN", "")
     ORACLE_DSN: str = os.getenv("ORACLE_DSN", "")
@@ -40,6 +50,21 @@ class Settings:
     JWT_SECRET: str = os.getenv("JWT_SECRET", "super-secret-key-change-in-production")
     JWT_EXP_HOURS: int = int(os.getenv("JWT_EXP_HOURS", "24"))
     REFRESH_TOKEN_EXP_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXP_DAYS", "30"))
+
+    # 5. RBAC Local (Mapeamento Grupos do AD -> Perfis da Aplicação)
+    # Cada variável aceita uma lista de grupos do AD separados por vírgula.
+    RBAC_GRUPOS_ADMINISTRADOR: List[str] = _parse_lista_env(
+        "RBAC_GRUPOS_ADMINISTRADOR", "GLO-SEC-HCPE-SETISD"
+    )
+    RBAC_GRUPOS_GESTOR_CENTRAL: List[str] = _parse_lista_env(
+        "RBAC_GRUPOS_GESTOR_CENTRAL", "HCPE-MARCACAO-GESTOR-CENTRAL"
+    )
+    RBAC_GRUPOS_MARCADOR: List[str] = _parse_lista_env(
+        "RBAC_GRUPOS_MARCADOR", "HCPE-MARCACAO-MARCADOR"
+    )
+    RBAC_GRUPOS_CONSULTA: List[str] = _parse_lista_env(
+        "RBAC_GRUPOS_CONSULTA", "HCPE-MARCACAO-CONSULTA"
+    )
 
     @classmethod
     def validate_config(cls):

@@ -1,6 +1,7 @@
 """Autenticação real e cabeçalhos de segurança dos novos endpoints."""
 
 from datetime import datetime, timedelta, timezone
+from typing import Callable
 
 import jwt
 import pytest
@@ -46,3 +47,14 @@ def test_admin_e_security_headers(
     assert response.headers["X-XSS-Protection"] == "1; mode=block"
     assert response.headers["Cache-Control"] == "no-store, no-cache, must-revalidate, max-age=0"
     assert response.headers["Pragma"] == "no-cache"
+
+
+@pytest.mark.parametrize("url", URLS)
+@pytest.mark.parametrize("perfil", ["GESTOR_CENTRAL", "MARCADOR", "CONSULTA"])
+def test_integracao_rbac_preserva_restricao_administrativa(
+    client: TestClient, make_auth_headers: Callable[..., dict[str, str]],
+    url: str, perfil: str,
+) -> None:
+    """A integração dos perfis da master mantém a decisão de acesso da TASK-011."""
+    response = client.get(url, headers=make_auth_headers(perfil))
+    assert response.status_code == 403
