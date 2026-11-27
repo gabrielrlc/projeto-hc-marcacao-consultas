@@ -126,6 +126,7 @@ def test_exports_e_registro_no_base_metadata() -> None:
         "flag_hemodialise",
         "flag_diabetico_jejum",
         "grupo_prioritario_manual",
+        "idade_informada",
         "status_higienizacao",
         "status_operacional",
         "contato_iniciado_em",
