@@ -7,12 +7,14 @@ Fixtures Compartilhadas da Suíte Pytest
 - ``seed_regras``: executa o seed inicial de regras no banco temporário.
 - ``app_db_sync_session``: sessão SQLAlchemy síncrona para inspecionar o banco
   temporário nas asserções (ex: ``deleted_at`` preenchido, ``audit_logs``).
+- ``indicadores_db`` / ``admin_headers``: sessão e login dos testes da TASK-011.
 - ``make_auth_headers``: gera cabeçalhos ``Authorization`` com JWT válido para
   um perfil RBAC (``ADMINISTRADOR``, ``GESTOR_CENTRAL``, ``MARCADOR``, ``CONSULTA``).
 """
 
 import asyncio
 import os
+import secrets
 import sys
 from pathlib import Path
 from typing import Callable, Dict, Iterator, List, Optional
@@ -26,10 +28,18 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from src.auth.auth import auth_handler
+import src.auth.auth as auth_module
+from src.auth.auth import MockAuthProvider, auth_handler
 from src.auth.rbac import obter_mapa_grupos_perfis
 from src.main import app
 from src.resources.seed_exames import executar_seed_cli
+
+
+@pytest.fixture(autouse=True)
+def mock_auth(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Isola autenticação dos testes do AD e das chaves do ambiente real."""
+    monkeypatch.setattr(auth_handler, "provider", MockAuthProvider())
+    monkeypatch.setattr(auth_module, "JWT_SECRET", secrets.token_urlsafe(32))
 
 
 @pytest.fixture
@@ -46,6 +56,8 @@ def app_db_url(app_db_path: Path, monkeypatch: pytest.MonkeyPatch) -> str:
     """
     url = f"sqlite+aiosqlite:///{app_db_path}"
     monkeypatch.setenv("SQLITE_DSN", url)
+    monkeypatch.setenv("APP_DB_URL", url)
+    monkeypatch.setenv("POSTGRES_DSN", "")
     return url
 
 
@@ -55,9 +67,11 @@ def client(app_db_url: str) -> Iterator[TestClient]:
     Fixture de teste que fornece um TestClient configurado para fazer requisições
     à aplicação FastAPI sobre um banco SQLite temporário e isolado.
     """
-    with TestClient(app) as test_client:
-        yield test_client
-    app.dependency_overrides.clear()
+    try:
+        with TestClient(app) as test_client:
+            yield test_client
+    finally:
+        app.dependency_overrides.clear()
 
 
 @pytest.fixture
@@ -110,3 +124,17 @@ def make_auth_headers() -> Callable[..., Dict[str, str]]:
         return {"Authorization": f"Bearer {token}"}
 
     return _make
+
+
+@pytest.fixture
+def indicadores_db(app_db_sync_session: Session) -> Session:
+    """Reutiliza a sessão temporária compartilhada nos testes de KPIs e auditoria."""
+    return app_db_sync_session
+
+
+@pytest.fixture
+def admin_headers(client: TestClient) -> Dict[str, str]:
+    """Autentica pelo endpoint real usando o provedor mock isolado."""
+    response = client.post("/api/login", data={"username": "admin", "password": "admin"})
+    assert response.status_code == 200
+    return {"Authorization": f"Bearer {response.json()['access_token']}"}

@@ -39,6 +39,59 @@ Todas as rotas de negócio seguem o **Default-Private Router Pattern** (`depende
 * `GET /api/dashboard/kpis` — Retorna KPIs agregados da operação.
 * `GET /api/admin/audit-logs` — Consulta filtrável da trilha de auditoria imutável.
 
+#### Contratos implementados na TASK-011
+
+**Acesso nesta entrega:** ambos os endpoints exigem JWT válido e o grupo administrativo
+`GLO-SEC-HCPE-SETISD`, reutilizando a autorização existente. A integração futura com
+RBAC local deverá liberar os perfis previstos na seção de arquitetura; esses perfis
+ainda não são persistidos pelo framework.
+
+**Datas:** os filtros `data_inicio` e `data_fim` recebem datas/horas ISO 8601.
+Offsets são convertidos para UTC; valores sem offset são interpretados como UTC.
+Os limites são inclusivos. Intervalos invertidos e filtros inválidos retornam HTTP 400
+com `{"detail": "mensagem"}`. Sem filtros de período, considera-se todo o histórico.
+
+**KPIs:** aceita também `codigo_exame` (igualdade exata). O período filtra
+`acompanhamento_fila.created_at` em todos os indicadores. Retorna exatamente os nove
+campos camelCase de `IKpiDashboard`, sem dados pessoais. Itens com `deleted_at`
+preenchido são excluídos de todos os cálculos.
+
+| Campo | Regra de cálculo |
+| :--- | :--- |
+| `totalNaFila` | Itens `VALIDA` em `NA_FILA`. |
+| `aguardando24h` | Itens `VALIDA` em `AGUARDANDO_CONFIRMACAO_24H`, incluindo vencidos. |
+| `prazo24hVencidos` | Itens válidos aguardando, com prazo preenchido e menor ou igual ao instante atual. |
+| `confirmadosAgendados` | Itens `VALIDA` em `CONFIRMADO_AGENDADO_AGHU`. |
+| `duplicidadesBarradas` | Itens classificados como `DUPLICADA`, independentemente do status operacional. |
+| `divergenciasDetectadas` | Itens classificados como `DIVERGENCIA_EXAME`, independentemente do status operacional. |
+| `tempoMedioEsperaDias` | Média entre a entrada local (`created_at`) e agora dos itens válidos em `NA_FILA`, com duas casas decimais; datas futuras contribuem com zero. |
+| `filaPorExame` | Itens válidos em `NA_FILA` agrupados por código do exame (`NAO_INFORMADO` se ausente). |
+| `filaPorRegiao` | Itens válidos em `NA_FILA` agrupados por região. |
+
+Um único instante UTC é usado por requisição. Os agrupamentos são ordenados por
+quantidade decrescente e identificação crescente no desempate. Sem registros,
+contagens e média são zero e os agrupamentos são listas vazias. O tempo de espera
+mede a entrada no sistema local, não a data original do pedido no AGHU.
+
+**Auditoria:** aceita `categoria` (`SEGURANCA`, `NEGOCIO_CLINICO`, `CONFIGURACAO`),
+`usuario` (igualdade exata), `data_inicio`, `data_fim`, `page` (padrão 1) e `page_size`
+(padrão 50, mínimo 1, máximo 100). Os filtros são combinados com AND.
+Retorna `{items, total, page, page_size}`; `total` conta todos os eventos filtrados,
+mesmo quando a página solicitada estiver vazia. Ordenação: `created_at DESC, id DESC`.
+Cada item contém os campos de `AuditLog`, incluindo `id`, data UTC com sufixo `Z`,
+estados anterior/novo desserializados como JSON e IP. A consulta não cria nem altera
+eventos. JSON inválido em registros legados resulta em HTTP 500 descritivo, sem expor
+o conteúdo nem modificar o registro.
+
+**Migração:** `e7a011d4b920` cria `audit_logs` e seus índices ausentes, preservando
+tabelas de desenvolvimento preexistentes. O downgrade mantém a tabela e os eventos
+para respeitar a trilha imutável.
+
+A revisão de merge `f011d7e3a901` reúne a auditoria (`e7a011d4b920`) e a idade
+informada na fila (`d7e3a9c41f02`) em uma única ponta Alembic. Ela não altera
+schema ou dados: permite atualizar bancos novos ou posicionados em qualquer uma
+das duas revisões publicadas usando `alembic upgrade head`.
+
 ---
 
 ## 3. Integrações de Software e Hardware

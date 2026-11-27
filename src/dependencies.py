@@ -9,9 +9,27 @@ from .providers.implementations.paciente_csv_provider import PacienteCsvProvider
 from .providers.interfaces.exame_provider_interface import ExameProviderInterface
 from .providers.implementations.exame_postgres_provider import ExamePostgresProvider
 from .providers.implementations.exame_csv_provider import ExameCsvProvider
+from .resources.database import get_aghu_db_session, get_app_db_session
+from .providers.interfaces.dashboard_provider_interface import DashboardProviderInterface
+from .providers.implementations.dashboard_sqlite_provider import DashboardSqliteProvider
+from .providers.interfaces.auditoria_provider_interface import AuditoriaProviderInterface
+from .providers.implementations.auditoria_sqlite_provider import AuditoriaSqliteProvider
 from .providers.interfaces.fila_provider_interface import FilaProviderInterface
 from .providers.implementations.fila_sqlite_provider import FilaSqliteProvider
-from .resources.database import get_aghu_db_session, get_app_db_session
+
+
+def get_dashboard_provider(
+    session: AsyncSession = Depends(get_app_db_session),
+) -> DashboardProviderInterface:
+    """Injeta o provedor de indicadores do banco local."""
+    return DashboardSqliteProvider(session)
+
+
+def get_auditoria_provider(
+    session: AsyncSession = Depends(get_app_db_session),
+) -> AuditoriaProviderInterface:
+    """Injeta o provedor somente leitura dos logs de auditoria."""
+    return AuditoriaSqliteProvider(session)
 
 # 1. Funções "getter" simples e independentes (privadas por convenção)
 def _get_paciente_postgres_provider(

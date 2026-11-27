@@ -49,7 +49,9 @@ ALEMBIC_DIR_PATH = REPO_ROOT / "alembic"
 
 PREVIOUS_REVISION = "8a2efbe37bb6"
 FILA_TABLES_REVISION = "c4f9b2a1e830"
-HEAD_REVISION = "d7e3a9c41f02"
+AUDITORIA_REVISION = "e7a011d4b920"
+IDADE_REVISION = "d7e3a9c41f02"
+HEAD_REVISION = "f011d7e3a901"
 
 EXPECTED_NEW_TABLES = {
     "importacoes_forms",
@@ -204,7 +206,11 @@ def test_alembic_cadeia_de_revisoes() -> None:
 
     head_rev = script.get_revision(HEAD_REVISION)
     assert head_rev is not None
-    assert head_rev.down_revision == FILA_TABLES_REVISION
+    assert set(head_rev.down_revision) == {AUDITORIA_REVISION, IDADE_REVISION}
+    for parent_id in head_rev.down_revision:
+        parent_rev = script.get_revision(parent_id)
+        assert parent_rev is not None
+        assert parent_rev.down_revision == FILA_TABLES_REVISION
 
     fila_rev = script.get_revision(FILA_TABLES_REVISION)
     assert fila_rev is not None
