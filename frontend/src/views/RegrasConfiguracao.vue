@@ -19,10 +19,10 @@
           type="button"
           class="inline-flex items-center gap-1.5 rounded-md border border-stone-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-stone-100 transition-colors cursor-pointer"
           :disabled="regrasStore.carregando"
-          @click="abrirModalRestaurarSeed"
+          @click="recarregarDoServidor"
         >
           <ArrowPathIcon class="h-4 w-4 text-slate-500" />
-          Restaurar Padrão Seed
+          Recarregar do Servidor
         </button>
 
         <Button variant="default" type="button" @click="router.push('/fila')">
@@ -894,33 +894,6 @@
       </div>
     </Modal>
 
-    <!-- MODAL 5: CONFIRMAÇÃO DE RESTAURAR PADRÃO SEED -->
-    <Modal :show="modalRestaurarSeedAberto" @close="modalRestaurarSeedAberto = false">
-      <template #header>Restaurar Parâmetros Padrão (Seed)</template>
-
-      <div :class="['t-modal space-y-4', modalRestaurarSeedAberto ? 'is-open' : 'is-closing']">
-        <p class="text-sm text-slate-700 leading-relaxed">
-          Esta ação restaura os <strong>10 pesos de prioridade</strong>, as <strong>10 regras por exame</strong> e os <strong>6 pares da matriz de incompatibilidades</strong> para o gabarito clínico inicial do HC-UFPE.
-        </p>
-        <p class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-          Qualquer edição ou exclusão lógica realizada nesta sessão será substituída e todos os scores e alertas da fila serão recalculados imediatamente.
-        </p>
-
-        <div class="flex justify-end gap-2.5 border-t border-stone-200 pt-4">
-          <Button variant="default" type="button" @click="modalRestaurarSeedAberto = false">
-            Cancelar
-          </Button>
-          <Button
-            variant="warning"
-            type="button"
-            :loading="regrasStore.carregando"
-            @click="confirmarRestaurarSeed"
-          >
-            Restaurar Padrão Seed
-          </Button>
-        </div>
-      </div>
-    </Modal>
   </div>
 </template>
 
@@ -1012,7 +985,6 @@ const modalPrioridadeAberto = ref(false);
 const modalExameAberto = ref(false);
 const modalIncompAberto = ref(false);
 const modalConfirmarRemocaoAberto = ref(false);
-const modalRestaurarSeedAberto = ref(false);
 
 const erroModalMsg = ref('');
 const erroModalShake = ref(false);
@@ -1229,7 +1201,12 @@ async function salvarFormularioPrioridade(): Promise<void> {
 
 async function alternarPrioridade(regra: IRegraPrioridade): Promise<void> {
   const novoEstado = !regra.ativo;
-  await regrasStore.alternarAtivoPrioridade(regra.id);
+  try {
+    await regrasStore.alternarAtivoPrioridade(regra.id);
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'Erro ao alterar a situação da critério.');
+    return;
+  }
   toast.info(
     `Critério ${regra.codigo} ${novoEstado ? 'ativado' : 'pausado'}. Scores da fila atualizados.`,
   );
@@ -1311,7 +1288,12 @@ async function salvarFormularioExame(): Promise<void> {
 
 async function alternarExame(exame: IRegraExame): Promise<void> {
   const novoEstado = !exame.ativo;
-  await regrasStore.alternarAtivoRegraExame(exame.id);
+  try {
+    await regrasStore.alternarAtivoRegraExame(exame.id);
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'Erro ao alterar a situação da regra.');
+    return;
+  }
   toast.info(
     `Regra de ${exame.codigoExame} ${novoEstado ? 'ativada' : 'desativada'}. Alertas atualizados.`,
   );
@@ -1396,13 +1378,18 @@ async function salvarFormularioIncompatibilidade(): Promise<void> {
 
 async function alternarIncompatibilidade(inc: IIncompatibilidadeExame): Promise<void> {
   const novoEstado = !inc.ativo;
-  await regrasStore.alternarAtivoIncompatibilidade(inc.id);
+  try {
+    await regrasStore.alternarAtivoIncompatibilidade(inc.id);
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'Erro ao alterar a situação da incompatibilidade.');
+    return;
+  }
   toast.info(
     `Incompatibilidade ${inc.codigoExameOrigem} × ${inc.codigoExameConflitante} ${novoEstado ? 'ativada' : 'desativada'}.`,
   );
 }
 
-// ── Soft Delete & Seed Restore ──────────────────────────────────────────────
+// ── Soft Delete & Recarga do Servidor ──────────────────────────────────────────────
 function solicitarRemocao(
   tipo: 'prioridade' | 'exame' | 'incompatibilidade',
   id: number,
@@ -1423,26 +1410,30 @@ async function confirmarRemocao(): Promise<void> {
     return;
   }
 
-  if (alvo.tipo === 'prioridade') {
-    await regrasStore.removerPrioridade(alvo.id);
-  } else if (alvo.tipo === 'exame') {
-    await regrasStore.removerRegraExame(alvo.id);
-  } else {
-    await regrasStore.removerIncompatibilidade(alvo.id);
+  try {
+    if (alvo.tipo === 'prioridade') {
+      await regrasStore.removerPrioridade(alvo.id);
+    } else if (alvo.tipo === 'exame') {
+      await regrasStore.removerRegraExame(alvo.id);
+    } else {
+      await regrasStore.removerIncompatibilidade(alvo.id);
+    }
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'Erro ao remover a regra.');
+    return;
   }
 
   toast.warning(`Regra "${alvo.rotulo}" removida logicamente (Soft Delete). Fila recalculada.`);
   fecharModalRemocao();
 }
 
-function abrirModalRestaurarSeed(): void {
-  modalRestaurarSeedAberto.value = true;
-}
-
-async function confirmarRestaurarSeed(): Promise<void> {
-  await regrasStore.restaurarPadraoSeed();
-  modalRestaurarSeedAberto.value = false;
-  toast.success('Parâmetros padrão Seed restaurados. Scores e alertas da fila recalculados.');
+async function recarregarDoServidor(): Promise<void> {
+  try {
+    await regrasStore.carregarRegras();
+    toast.success('Regras recarregadas do servidor.');
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'Não foi possível carregar as regras do servidor.');
+  }
 }
 
 // ── Formatadores & Badges Clínicos (Zero Roxo/Violeta) ──────────────────────
@@ -1513,6 +1504,11 @@ watch(
 );
 
 onMounted(async () => {
+  try {
+    await regrasStore.carregarRegras();
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'Não foi possível carregar as regras do servidor.');
+  }
   await nextTick();
   posicionarPilulaAba(true);
   window.addEventListener('resize', aoRedimensionar);

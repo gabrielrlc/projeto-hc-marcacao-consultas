@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
+import api from '../services/api';
 import {
   MOCK_INCOMPATIBILIDADES,
   MOCK_REGRAS_EXAMES,
@@ -11,18 +12,97 @@ import type {
   IRegraPrioridade,
 } from '../types/exames';
 
+/**
+ * Store das Regras Configuráveis (TASK-015).
+ *
+ * Consome a API `/api/regras` (TASK-006): Pesos de Prioridade, Regras por Exame
+ * e Matriz de Incompatibilidades. Até a primeira carga do backend, mantém os
+ * dados de exemplo para que as telas ainda mockadas (fila/dashboard) continuem
+ * calculando scores; `carregarRegras()` substitui tudo pelos dados reais.
+ */
+
+const URL_BASE = '/api/regras';
+
 function clonarLista<T>(lista: T[]): T[] {
   return lista.map((item) => ({ ...item }));
 }
 
-function aguardarCurto(ms = 120): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
-
 function normalizarCodigo(codigo: string): string {
   return codigo.trim().toUpperCase();
+}
+
+function textoOpcional(valor: string | null | undefined): string | null {
+  const limpo = (valor ?? '').trim();
+  return limpo ? limpo : null;
+}
+
+function inteiroOpcional(valor: number | string | null | undefined): number | null {
+  if (valor === null || valor === undefined || valor === '') {
+    return null;
+  }
+  const numero = Math.round(Number(valor));
+  return Number.isNaN(numero) ? null : numero;
+}
+
+/** Extrai a mensagem `detail` do backend (string ou lista de erros do Pydantic). */
+export function extrairMensagemErro(err: unknown, padrao: string): string {
+  const resposta = (err as { response?: { status?: number; data?: { detail?: unknown } } })?.response;
+  const detail = resposta?.data?.detail;
+  if (typeof detail === 'string' && detail.trim()) {
+    return detail;
+  }
+  if (Array.isArray(detail) && detail.length > 0) {
+    return detail
+      .map((item) => String((item as { msg?: string })?.msg ?? item).replace(/^Value error, /, ''))
+      .join(' ');
+  }
+  if (resposta?.status === 403) {
+    return 'Seu perfil não tem permissão para esta operação.';
+  }
+  if (err instanceof Error && !resposta) {
+    return err.message || padrao;
+  }
+  return padrao;
+}
+
+function corpoPrioridade(regra: Omit<IRegraPrioridade, 'id'>) {
+  return {
+    nome: regra.nome.trim(),
+    tipoCriterio: regra.tipoCriterio,
+    valorMatch: (regra.valorMatch ?? '').trim().toUpperCase(),
+    peso: Math.max(0, Math.min(1000, Math.round(Number(regra.peso) || 0))),
+    ativo: regra.ativo,
+    descricao: textoOpcional(regra.descricao),
+  };
+}
+
+function corpoRegraExame(regra: Omit<IRegraExame, 'id'>) {
+  return {
+    nomeExame: regra.nomeExame.trim(),
+    unidadeExecutora: textoOpcional(regra.unidadeExecutora),
+    antecedenciaMinimaDias: Math.max(0, Math.round(Number(regra.antecedenciaMinimaDias) || 0)),
+    janelaRetornoMaxHoras: inteiroOpcional(regra.janelaRetornoMaxHoras),
+    exigeJejum: regra.exigeJejum,
+    priorizarManhaDiabetico: regra.priorizarManhaDiabetico,
+    idadeMinimaAlerta: inteiroOpcional(regra.idadeMinimaAlerta),
+    orientacoesPreparo: textoOpcional(regra.orientacoesPreparo),
+    ativo: regra.ativo,
+  };
+}
+
+function corpoIncompatibilidade(item: Omit<IIncompatibilidadeExame, 'id'>) {
+  return {
+    codigoExameOrigem: normalizarCodigo(item.codigoExameOrigem),
+    codigoExameConflitante: normalizarCodigo(item.codigoExameConflitante),
+    tipoConflito: item.tipoConflito,
+    intervaloMinimoDias: Math.max(0, Math.round(Number(item.intervaloMinimoDias) || 0)),
+    motivo: item.motivo.trim(),
+    ativo: item.ativo,
+  };
+}
+
+function prioridadeDaApi(dado: IRegraPrioridade): IRegraPrioridade {
+  return { ...dado, valorMatch: dado.valorMatch ?? '', deletedAt: null };
 }
 
 export const useRegrasStore = defineStore('regras', () => {
@@ -32,6 +112,8 @@ export const useRegrasStore = defineStore('regras', () => {
     clonarLista(MOCK_INCOMPATIBILIDADES),
   );
   const carregando = ref(false);
+  const carregadoDoServidor = ref(false);
+  const erroCarga = ref<string | null>(null);
 
   const prioridadesAtivas = computed<IRegraPrioridade[]>(() =>
     prioridades.value
@@ -58,301 +140,178 @@ export const useRegrasStore = defineStore('regras', () => {
       ),
   );
 
+  async function comCarregamento<T>(acao: () => Promise<T>): Promise<T> {
+    carregando.value = true;
+    try {
+      return await acao();
+    } finally {
+      carregando.value = false;
+    }
+  }
+
+  /** Busca as três tabelas de regras no backend (ativas e pausadas; excluídas não vêm). */
+  async function carregarRegras(): Promise<void> {
+    await comCarregamento(async () => {
+      try {
+        const [resPrioridades, resExames, resIncompatibilidades] = await Promise.all([
+          api.get<IRegraPrioridade[]>(`${URL_BASE}/prioridades`),
+          api.get<IRegraExame[]>(`${URL_BASE}/exames`),
+          api.get<IIncompatibilidadeExame[]>(`${URL_BASE}/incompatibilidades`),
+        ]);
+        prioridades.value = resPrioridades.data.map(prioridadeDaApi);
+        exames.value = resExames.data.map((r) => ({ ...r, deletedAt: null }));
+        incompatibilidades.value = resIncompatibilidades.data.map((i) => ({ ...i, deletedAt: null }));
+        carregadoDoServidor.value = true;
+        erroCarga.value = null;
+      } catch (err) {
+        erroCarga.value = extrairMensagemErro(err, 'Não foi possível carregar as regras do servidor.');
+        throw new Error(erroCarga.value);
+      }
+    });
+  }
+
+  function substituirNaLista<T extends { id: number }>(lista: T[], item: T): void {
+    const idx = lista.findIndex((atual) => atual.id === item.id);
+    if (idx === -1) {
+      lista.push(item);
+    } else {
+      lista[idx] = item;
+    }
+  }
+
+  // ── Pesos de Prioridade ──────────────────────────────────────────────────
   async function salvarPrioridade(
     payload: Omit<IRegraPrioridade, 'id'> & { id?: number },
   ): Promise<IRegraPrioridade> {
-    carregando.value = true;
-    try {
-      await aguardarCurto();
-      const codigoNormalizado = normalizarCodigo(payload.codigo);
-      const pesoSeguro = Math.max(0, Math.min(1000, Math.round(Number(payload.peso) || 0)));
-      const agora = new Date().toISOString();
-
-      const duplicada = prioridades.value.find(
-        (r) => !r.deletedAt && normalizarCodigo(r.codigo) === codigoNormalizado && r.id !== payload.id,
-      );
-      if (duplicada) {
-        throw new Error(`Já existe uma regra de prioridade com o código "${codigoNormalizado}".`);
+    return comCarregamento(async () => {
+      try {
+        const corpo = corpoPrioridade(payload);
+        const { data } =
+          payload.id !== undefined
+            ? await api.put<IRegraPrioridade>(`${URL_BASE}/prioridades/${payload.id}`, corpo)
+            : await api.post<IRegraPrioridade>(`${URL_BASE}/prioridades`, {
+                ...corpo,
+                codigo: normalizarCodigo(payload.codigo),
+              });
+        const salva = prioridadeDaApi(data);
+        substituirNaLista(prioridades.value, salva);
+        return { ...salva };
+      } catch (err) {
+        throw new Error(extrairMensagemErro(err, 'Erro ao salvar critério de prioridade.'));
       }
-
-      if (payload.id !== undefined) {
-        const idx = prioridades.value.findIndex((r) => r.id === payload.id);
-        if (idx === -1) {
-          throw new Error('Regra de prioridade não encontrada.');
-        }
-        const atualizada: IRegraPrioridade = {
-          ...prioridades.value[idx],
-          ...payload,
-          id: payload.id,
-          codigo: codigoNormalizado,
-          nome: payload.nome.trim(),
-          valorMatch: payload.valorMatch.trim().toUpperCase(),
-          peso: pesoSeguro,
-          descricao: payload.descricao?.trim() || null,
-          updatedAt: agora,
-          deletedAt: null,
-        };
-        prioridades.value[idx] = atualizada;
-        return { ...atualizada };
-      }
-
-      const proximoId =
-        prioridades.value.reduce((max, r) => Math.max(max, r.id), 0) + 1;
-      const nova: IRegraPrioridade = {
-        ...payload,
-        id: proximoId,
-        codigo: codigoNormalizado,
-        nome: payload.nome.trim(),
-        valorMatch: payload.valorMatch.trim().toUpperCase(),
-        peso: pesoSeguro,
-        descricao: payload.descricao?.trim() || null,
-        updatedAt: agora,
-        deletedAt: null,
-      };
-      prioridades.value.push(nova);
-      return { ...nova };
-    } finally {
-      carregando.value = false;
-    }
+    });
   }
 
   async function alternarAtivoPrioridade(id: number): Promise<void> {
-    carregando.value = true;
-    try {
-      await aguardarCurto(90);
-      const alvo = prioridades.value.find((r) => r.id === id && !r.deletedAt);
-      if (alvo) {
-        alvo.ativo = !alvo.ativo;
-        alvo.updatedAt = new Date().toISOString();
-      }
-    } finally {
-      carregando.value = false;
+    const alvo = prioridades.value.find((r) => r.id === id && !r.deletedAt);
+    if (!alvo) {
+      return;
     }
+    await salvarPrioridade({ ...alvo, ativo: !alvo.ativo });
   }
 
   async function removerPrioridade(id: number): Promise<void> {
-    carregando.value = true;
-    try {
-      await aguardarCurto();
-      const alvo = prioridades.value.find((r) => r.id === id && !r.deletedAt);
-      if (alvo) {
-        const agora = new Date().toISOString();
-        alvo.ativo = false;
-        alvo.deletedAt = agora;
-        alvo.updatedAt = agora;
+    await comCarregamento(async () => {
+      try {
+        await api.delete(`${URL_BASE}/prioridades/${id}`);
+        prioridades.value = prioridades.value.filter((r) => r.id !== id);
+      } catch (err) {
+        throw new Error(extrairMensagemErro(err, 'Erro ao remover critério de prioridade.'));
       }
-    } finally {
-      carregando.value = false;
-    }
+    });
   }
 
+  // ── Regras por Exame ─────────────────────────────────────────────────────
   async function salvarRegraExame(
     payload: Omit<IRegraExame, 'id'> & { id?: number },
   ): Promise<IRegraExame> {
-    carregando.value = true;
-    try {
-      await aguardarCurto();
-      const codigoNormalizado = normalizarCodigo(payload.codigoExame);
-      const agora = new Date().toISOString();
-
-      const duplicada = exames.value.find(
-        (r) =>
-          !r.deletedAt &&
-          normalizarCodigo(r.codigoExame) === codigoNormalizado &&
-          r.id !== payload.id,
-      );
-      if (duplicada) {
-        throw new Error(`Já existe regra cadastrada para o exame "${codigoNormalizado}".`);
+    return comCarregamento(async () => {
+      try {
+        const corpo = corpoRegraExame(payload);
+        const { data } =
+          payload.id !== undefined
+            ? await api.put<IRegraExame>(`${URL_BASE}/exames/${payload.id}`, corpo)
+            : await api.post<IRegraExame>(`${URL_BASE}/exames`, {
+                ...corpo,
+                codigoExame: normalizarCodigo(payload.codigoExame),
+              });
+        const salva = { ...data, deletedAt: null };
+        substituirNaLista(exames.value, salva);
+        return { ...salva };
+      } catch (err) {
+        throw new Error(extrairMensagemErro(err, 'Erro ao salvar regra do exame.'));
       }
-
-      const antecedencia = Math.max(0, Math.round(Number(payload.antecedenciaMinimaDias) || 0));
-      const janela =
-        payload.janelaRetornoMaxHoras !== null && payload.janelaRetornoMaxHoras !== undefined
-          ? Math.max(1, Math.round(Number(payload.janelaRetornoMaxHoras)))
-          : null;
-      const idadeMinima =
-        payload.idadeMinimaAlerta !== null && payload.idadeMinimaAlerta !== undefined
-          ? Math.max(1, Math.round(Number(payload.idadeMinimaAlerta)))
-          : null;
-
-      if (payload.id !== undefined) {
-        const idx = exames.value.findIndex((r) => r.id === payload.id);
-        if (idx === -1) {
-          throw new Error('Regra de exame não encontrada.');
-        }
-        const atualizada: IRegraExame = {
-          ...exames.value[idx],
-          ...payload,
-          id: payload.id,
-          codigoExame: codigoNormalizado,
-          nomeExame: payload.nomeExame.trim(),
-          unidadeExecutora: payload.unidadeExecutora?.trim() || null,
-          antecedenciaMinimaDias: antecedencia,
-          janelaRetornoMaxHoras: janela,
-          idadeMinimaAlerta: idadeMinima,
-          orientacoesPreparo: payload.orientacoesPreparo?.trim() || null,
-          updatedAt: agora,
-          deletedAt: null,
-        };
-        exames.value[idx] = atualizada;
-        return { ...atualizada };
-      }
-
-      const proximoId = exames.value.reduce((max, r) => Math.max(max, r.id), 0) + 1;
-      const nova: IRegraExame = {
-        ...payload,
-        id: proximoId,
-        codigoExame: codigoNormalizado,
-        nomeExame: payload.nomeExame.trim(),
-        unidadeExecutora: payload.unidadeExecutora?.trim() || null,
-        antecedenciaMinimaDias: antecedencia,
-        janelaRetornoMaxHoras: janela,
-        idadeMinimaAlerta: idadeMinima,
-        orientacoesPreparo: payload.orientacoesPreparo?.trim() || null,
-        updatedAt: agora,
-        deletedAt: null,
-      };
-      exames.value.push(nova);
-      return { ...nova };
-    } finally {
-      carregando.value = false;
-    }
+    });
   }
 
   async function alternarAtivoRegraExame(id: number): Promise<void> {
-    carregando.value = true;
-    try {
-      await aguardarCurto(90);
-      const alvo = exames.value.find((r) => r.id === id && !r.deletedAt);
-      if (alvo) {
-        alvo.ativo = !alvo.ativo;
-        alvo.updatedAt = new Date().toISOString();
-      }
-    } finally {
-      carregando.value = false;
+    const alvo = exames.value.find((r) => r.id === id && !r.deletedAt);
+    if (!alvo) {
+      return;
     }
+    await salvarRegraExame({ ...alvo, ativo: !alvo.ativo });
   }
 
   async function removerRegraExame(id: number): Promise<void> {
-    carregando.value = true;
-    try {
-      await aguardarCurto();
-      const alvo = exames.value.find((r) => r.id === id && !r.deletedAt);
-      if (alvo) {
-        const agora = new Date().toISOString();
-        alvo.ativo = false;
-        alvo.deletedAt = agora;
-        alvo.updatedAt = agora;
+    await comCarregamento(async () => {
+      try {
+        await api.delete(`${URL_BASE}/exames/${id}`);
+        exames.value = exames.value.filter((r) => r.id !== id);
+      } catch (err) {
+        throw new Error(extrairMensagemErro(err, 'Erro ao remover regra do exame.'));
       }
-    } finally {
-      carregando.value = false;
-    }
+    });
   }
 
+  // ── Matriz de Incompatibilidades ─────────────────────────────────────────
   async function salvarIncompatibilidade(
     payload: Omit<IIncompatibilidadeExame, 'id'> & { id?: number },
   ): Promise<IIncompatibilidadeExame> {
-    carregando.value = true;
-    try {
-      await aguardarCurto();
-      const origem = normalizarCodigo(payload.codigoExameOrigem);
-      const conflitante = normalizarCodigo(payload.codigoExameConflitante);
-
-      if (!origem || !conflitante) {
-        throw new Error('Informe ambos os códigos de exame para o par incompatível.');
-      }
-      if (origem === conflitante) {
-        throw new Error('Um exame não pode ser configurado como incompatível consigo mesmo.');
-      }
-
-      const duplicada = incompatibilidades.value.find((item) => {
-        if (item.deletedAt || item.id === payload.id) {
-          return false;
-        }
-        const o = normalizarCodigo(item.codigoExameOrigem);
-        const c = normalizarCodigo(item.codigoExameConflitante);
-        return (o === origem && c === conflitante) || (o === conflitante && c === origem);
-      });
-      if (duplicada) {
-        throw new Error(`O par ${origem} × ${conflitante} já está cadastrado na matriz.`);
-      }
-
-      const intervalo = Math.max(0, Math.round(Number(payload.intervaloMinimoDias) || 0));
-
-      if (payload.id !== undefined) {
-        const idx = incompatibilidades.value.findIndex((item) => item.id === payload.id);
-        if (idx === -1) {
-          throw new Error('Incompatibilidade não encontrada.');
-        }
-        const atualizada: IIncompatibilidadeExame = {
-          ...incompatibilidades.value[idx],
-          ...payload,
-          id: payload.id,
-          codigoExameOrigem: origem,
-          codigoExameConflitante: conflitante,
-          intervaloMinimoDias: intervalo,
-          motivo: payload.motivo.trim(),
-          deletedAt: null,
-        };
-        incompatibilidades.value[idx] = atualizada;
-        return { ...atualizada };
-      }
-
-      const proximoId =
-        incompatibilidades.value.reduce((max, item) => Math.max(max, item.id), 0) + 1;
-      const nova: IIncompatibilidadeExame = {
-        ...payload,
-        id: proximoId,
-        codigoExameOrigem: origem,
-        codigoExameConflitante: conflitante,
-        intervaloMinimoDias: intervalo,
-        motivo: payload.motivo.trim(),
-        deletedAt: null,
-      };
-      incompatibilidades.value.push(nova);
-      return { ...nova };
-    } finally {
-      carregando.value = false;
+    const origem = normalizarCodigo(payload.codigoExameOrigem);
+    const conflitante = normalizarCodigo(payload.codigoExameConflitante);
+    if (!origem || !conflitante) {
+      throw new Error('Informe ambos os códigos de exame para o par incompatível.');
     }
+    if (origem === conflitante) {
+      throw new Error('Um exame não pode ser configurado como incompatível consigo mesmo.');
+    }
+
+    return comCarregamento(async () => {
+      try {
+        const corpo = corpoIncompatibilidade(payload);
+        const { data } =
+          payload.id !== undefined
+            ? await api.put<IIncompatibilidadeExame>(
+                `${URL_BASE}/incompatibilidades/${payload.id}`,
+                corpo,
+              )
+            : await api.post<IIncompatibilidadeExame>(`${URL_BASE}/incompatibilidades`, corpo);
+        const salva = { ...data, deletedAt: null };
+        substituirNaLista(incompatibilidades.value, salva);
+        return { ...salva };
+      } catch (err) {
+        throw new Error(extrairMensagemErro(err, 'Erro ao salvar incompatibilidade.'));
+      }
+    });
   }
 
   async function alternarAtivoIncompatibilidade(id: number): Promise<void> {
-    carregando.value = true;
-    try {
-      await aguardarCurto(90);
-      const alvo = incompatibilidades.value.find((item) => item.id === id && !item.deletedAt);
-      if (alvo) {
-        alvo.ativo = !alvo.ativo;
-      }
-    } finally {
-      carregando.value = false;
+    const alvo = incompatibilidades.value.find((item) => item.id === id && !item.deletedAt);
+    if (!alvo) {
+      return;
     }
+    await salvarIncompatibilidade({ ...alvo, ativo: !alvo.ativo });
   }
 
   async function removerIncompatibilidade(id: number): Promise<void> {
-    carregando.value = true;
-    try {
-      await aguardarCurto();
-      const alvo = incompatibilidades.value.find((item) => item.id === id && !item.deletedAt);
-      if (alvo) {
-        alvo.ativo = false;
-        alvo.deletedAt = new Date().toISOString();
+    await comCarregamento(async () => {
+      try {
+        await api.delete(`${URL_BASE}/incompatibilidades/${id}`);
+        incompatibilidades.value = incompatibilidades.value.filter((item) => item.id !== id);
+      } catch (err) {
+        throw new Error(extrairMensagemErro(err, 'Erro ao remover incompatibilidade.'));
       }
-    } finally {
-      carregando.value = false;
-    }
-  }
-
-  async function restaurarPadraoSeed(): Promise<void> {
-    carregando.value = true;
-    try {
-      await aguardarCurto(150);
-      prioridades.value = clonarLista(MOCK_REGRAS_PRIORIDADE);
-      exames.value = clonarLista(MOCK_REGRAS_EXAMES);
-      incompatibilidades.value = clonarLista(MOCK_INCOMPATIBILIDADES);
-    } finally {
-      carregando.value = false;
-    }
+    });
   }
 
   return {
@@ -360,9 +319,12 @@ export const useRegrasStore = defineStore('regras', () => {
     exames,
     incompatibilidades,
     carregando,
+    carregadoDoServidor,
+    erroCarga,
     prioridadesAtivas,
     examesAtivos,
     incompatibilidadesAtivas,
+    carregarRegras,
     salvarPrioridade,
     alternarAtivoPrioridade,
     removerPrioridade,
@@ -372,6 +334,5 @@ export const useRegrasStore = defineStore('regras', () => {
     salvarIncompatibilidade,
     alternarAtivoIncompatibilidade,
     removerIncompatibilidade,
-    restaurarPadraoSeed,
   };
 });
