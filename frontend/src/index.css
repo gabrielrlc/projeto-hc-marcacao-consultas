@@ -37,6 +37,93 @@
   --shadow-paper: 0 2px 2px 0 rgba(204, 197, 185, 0.5);
 }
 
+/* ── Motion Tokens (transitions-dev + transitions-polish) ───────────────── */
+:root {
+  /* Durations */
+  --duration-stagger: 40ms;
+  --duration-micro: 80ms;
+  --duration-quick: 150ms;
+  --duration-fast: 250ms;
+  --duration-medium: 350ms;
+  --duration-slow: 400ms;
+  --duration-very-slow: 500ms;
+
+  /* Easings */
+  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: ease-in-out;
+  --ease-out: ease-out;
+  --ease-linear: linear;
+  --ease-bounce: cubic-bezier(0.34, 1.36, 0.64, 1);
+  --ease-bounce-strong: cubic-bezier(0.34, 3.85, 0.64, 1);
+
+  /* Distances */
+  --distance-micro: 4px;
+  --distance-small: 6px;
+  --distance-base: 8px;
+  --distance-medium: 12px;
+  --distance-large: 30px;
+
+  /* Scales */
+  --scale-large: 0.96;
+  --scale-medium: 0.97;
+  --scale-small: 0.98;
+  --scale-tiny: 0.99;
+
+  /* Blur */
+  --blur-small: 2px;
+  --blur-medium: 3px;
+  --blur-large: 8px;
+
+  /* Tabs sliding (16-tabs-sliding) — adaptado ao tema clínico Paper */
+  --tabs-dur: var(--duration-fast);
+  --tabs-ease: var(--ease-smooth-out);
+  --tabs-bar-bg: #ebe9e3;
+  --tabs-pill-bg: #ffffff;
+  --tabs-text-active: #1e293b;
+  --tabs-text-muted: #64748b;
+
+  /* Modal open/close (06-modal) — assimetria abrir 250ms / fechar 150ms */
+  --modal-open-dur: var(--duration-fast);
+  --modal-close-dur: var(--duration-quick);
+  --modal-scale: var(--scale-large);
+  --modal-scale-close: var(--scale-large);
+  --modal-ease: var(--ease-smooth-out);
+
+  /* Tooltip open/close (17-tooltip) — intent delay 80ms na entrada, 0ms na saída */
+  --tt-in-dur: var(--duration-quick);
+  --tt-out-dur: 50ms;
+  --tt-scale: var(--scale-small);
+  --tt-delay: var(--duration-micro);
+  --tt-in-ease: var(--ease-out);
+  --tt-out-ease: var(--ease-out);
+  --tt-move-dur: 160ms;
+  --tt-move-ease: var(--ease-smooth-out);
+  --tt-bg: #ffffff;
+  --tt-fg: #1e293b;
+
+  /* Number subtle change (36-number-subtle-change) */
+  --subtle-dur: 455ms;
+  --subtle-distance: 0.14em;
+  --subtle-blur: 1px;
+  --subtle-ease: var(--ease-smooth-out);
+
+  /* Stagger reveal (18-texts-reveal) — teto 6 itens × 40ms = 240ms < 300ms */
+  --stagger-dur: var(--duration-very-slow);
+  --stagger-distance: var(--distance-medium);
+  --stagger-stagger: var(--duration-stagger);
+  --stagger-blur: var(--blur-medium);
+  --stagger-ease: var(--ease-smooth-out);
+
+  /* Error state shake (12-error-state-shake) */
+  --shake-distance: var(--distance-small);
+  --shake-overshoot: var(--distance-micro);
+  --shake-dur-a: var(--duration-micro);
+  --shake-dur-b: 60ms;
+  --shake-ease: var(--ease-smooth-out);
+  --revert-hold: 3000ms;
+  --revert-dur: 280ms;
+}
+
 @layer components {
   .container {
     width: 100%;
@@ -70,6 +157,12 @@
     }
   }
 
+  @media (width >= 1440px) {
+    .container {
+      max-width: 1320px;
+    }
+  }
+
   /* Form Styles */
   .form-group {
     @apply mb-4;
@@ -85,5 +178,305 @@
 
   .form-control-icon {
     @apply absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none;
+  }
+
+  /* Tipografia numérica alinhada para tabelas, scores, prazos e KPIs */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Tabs sliding (16-tabs-sliding) ─────────────────────────────────── */
+  .t-tabs {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 3px;
+    border-radius: 10px;
+    background: var(--tabs-bar-bg);
+    border: 1px solid rgba(102, 97, 91, 0.14);
+  }
+
+  .t-tab {
+    position: relative;
+    appearance: none;
+    border: 0;
+    background: transparent;
+    min-height: 32px;
+    padding: 5px 12px;
+    color: var(--tabs-text-muted);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.25;
+    cursor: pointer;
+    border-radius: 7px;
+    z-index: 1;
+    white-space: nowrap;
+    transition: color var(--tabs-dur) var(--tabs-ease);
+  }
+
+  .t-tab:not([aria-selected='true']):hover,
+  .t-tab[aria-selected='true'] {
+    color: var(--tabs-text-active);
+  }
+
+  .t-tabs-pill {
+    position: absolute;
+    top: 3px;
+    bottom: 3px;
+    left: 0;
+    width: 0;
+    background: var(--tabs-pill-bg);
+    border-radius: 7px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+    transform: translateX(0);
+    transition:
+      transform var(--tabs-dur) var(--tabs-ease),
+      width var(--tabs-dur) var(--tabs-ease);
+    will-change: transform, width;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* ── Modal open / close (06-modal) ──────────────────────────────────── */
+  .t-modal {
+    transform-origin: center;
+    transform: scale(var(--modal-scale));
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      transform var(--modal-open-dur) var(--modal-ease),
+      opacity var(--modal-open-dur) var(--modal-ease);
+    will-change: transform, opacity;
+  }
+
+  .t-modal.is-open {
+    transform: scale(1);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .t-modal.is-closing {
+    transform: scale(var(--modal-scale-close));
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      transform var(--modal-close-dur) var(--modal-ease),
+      opacity var(--modal-close-dur) var(--modal-ease);
+  }
+
+  /* ── Tooltip com intent delay (17-tooltip) ──────────────────────────── */
+  .t-tt-group {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .t-tt {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    z-index: 40;
+    box-sizing: border-box;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    translate: var(--tt-x, 0px) 0;
+    scale: var(--tt-scale);
+    transform-origin: 50% 100%;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: var(--tt-bg);
+    color: var(--tt-fg);
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    box-shadow:
+      0 2px 6px rgba(15, 23, 42, 0.08),
+      0 8px 24px rgba(15, 23, 42, 0.1);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity var(--tt-out-dur) var(--tt-out-ease),
+      scale var(--tt-out-dur) var(--tt-out-ease),
+      translate var(--tt-move-dur) var(--tt-move-ease),
+      width var(--tt-move-dur) var(--tt-move-ease);
+  }
+
+  .t-tt[data-show='true'],
+  .t-tt-group:hover > .t-tt.t-tt-hover,
+  .t-tt-group:focus-within > .t-tt.t-tt-hover {
+    opacity: 1;
+    scale: 1;
+    transition:
+      opacity var(--tt-in-dur) var(--tt-in-ease) var(--tt-delay),
+      scale var(--tt-in-dur) var(--tt-in-ease) var(--tt-delay),
+      translate var(--tt-move-dur) var(--tt-move-ease),
+      width var(--tt-move-dur) var(--tt-move-ease);
+  }
+
+  .t-tt-text {
+    white-space: nowrap;
+  }
+
+  /* ── Card KPI interativo (hover sutil -2px) ─────────────────────────── */
+  .t-kpi-card {
+    transition:
+      transform 200ms var(--ease-smooth-out),
+      box-shadow 200ms var(--ease-smooth-out),
+      border-color 200ms var(--ease-smooth-out);
+    will-change: transform;
+  }
+
+  .t-kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.07);
+  }
+
+  /* ── Stagger controlado (máx 6 itens × 40ms = 240ms < 300ms) ────────── */
+  .t-stagger-item {
+    animation: t-stagger-enter var(--stagger-dur) var(--stagger-ease) both;
+    will-change: transform, opacity, filter;
+  }
+
+  .t-stagger > .t-stagger-item:nth-child(1) {
+    animation-delay: 0ms;
+  }
+  .t-stagger > .t-stagger-item:nth-child(2) {
+    animation-delay: calc(var(--stagger-stagger) * 1);
+  }
+  .t-stagger > .t-stagger-item:nth-child(3) {
+    animation-delay: calc(var(--stagger-stagger) * 2);
+  }
+  .t-stagger > .t-stagger-item:nth-child(4) {
+    animation-delay: calc(var(--stagger-stagger) * 3);
+  }
+  .t-stagger > .t-stagger-item:nth-child(5) {
+    animation-delay: calc(var(--stagger-stagger) * 4);
+  }
+  .t-stagger > .t-stagger-item:nth-child(6) {
+    animation-delay: calc(var(--stagger-stagger) * 5);
+  }
+
+  /* ── Number subtle change & KPI pop (36-number-subtle-change) ───────── */
+  .t-subtle-number,
+  .t-kpi-pop {
+    display: inline-flex;
+    align-items: baseline;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .t-subtle-slot {
+    position: relative;
+    display: inline-block;
+  }
+
+  .t-subtle-new {
+    display: inline-block;
+  }
+
+  .t-subtle-old {
+    position: absolute;
+    inset: 0;
+    text-align: center;
+    pointer-events: none;
+  }
+
+  .t-subtle-number.is-animating,
+  .t-kpi-pop.is-animating,
+  .t-subtle-number.is-animating .t-subtle-new {
+    animation: t-subtle-in var(--subtle-dur) var(--subtle-ease) both;
+  }
+
+  .t-subtle-number.is-animating .t-subtle-old {
+    animation: t-subtle-out var(--subtle-dur) var(--subtle-ease) both;
+  }
+
+  /* ── Error state shake (12-error-state-shake) ───────────────────────── */
+  .t-shake,
+  .t-input.is-shaking {
+    animation: t-input-shake calc(var(--shake-dur-a) * 2 + var(--shake-dur-b) * 2) linear;
+    will-change: transform;
+  }
+}
+
+@keyframes t-stagger-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--stagger-distance));
+    filter: blur(var(--stagger-blur));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes t-subtle-in {
+  from {
+    transform: translateY(calc(var(--subtle-distance) * var(--subtle-dir, 1)));
+    opacity: 0;
+    filter: blur(var(--subtle-blur));
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@keyframes t-subtle-out {
+  to {
+    transform: translateY(calc(var(--subtle-distance) * var(--subtle-dir, 1) * -1));
+    opacity: 0;
+    filter: blur(var(--subtle-blur));
+  }
+}
+
+@keyframes t-input-shake {
+  0% {
+    transform: translateX(0);
+    animation-timing-function: var(--shake-ease);
+  }
+  28.57% {
+    transform: translateX(var(--shake-distance));
+    animation-timing-function: var(--shake-ease);
+  }
+  57.14% {
+    transform: translateX(calc(var(--shake-distance) * -1));
+    animation-timing-function: var(--shake-ease);
+  }
+  78.57% {
+    transform: translateX(var(--shake-overshoot));
+    animation-timing-function: var(--shake-ease);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+/* ── Acessibilidade obrigatória (prefers-reduced-motion) ────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    filter: none !important;
+  }
+
+  .t-stagger-item,
+  .t-subtle-number,
+  .t-kpi-pop {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .t-subtle-old {
+    display: none !important;
+  }
+
+  .t-kpi-card:hover {
+    transform: none !important;
   }
 }
