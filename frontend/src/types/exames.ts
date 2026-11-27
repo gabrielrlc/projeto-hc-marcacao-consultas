@@ -230,3 +230,47 @@ export interface IKpiDashboard {
     percentual: number;
   }>;
 }
+
+
+/** Registro do histórico de importações do Forms (``ImportacaoResumoOut``). */
+export interface IImportacaoResumo {
+  id: number;
+  nomeArquivo: string;
+  importadoEm: string;
+  usuarioImportador: string;
+  totalLinhas: number;
+  totalValidas: number;
+  totalDuplicadas: number;
+  /** Divergências + não encontradas + já realizadas. */
+  totalErros: number;
+}
+
+/** Linha higienizada de uma importação (``ItemImportacaoOut``). */
+export interface IItemImportacao {
+  id: number;
+  linhaPlanilha: number | null;
+  codigoSolicitacao: string;
+  codigoExame: string | null;
+  prontuario: string | null;
+  nomePaciente: string;
+  exameInformadoForms: string | null;
+  unidadeSolicitante: string | null;
+  municipio: string | null;
+  regiaoGeografica: RegiaoGeografica;
+  utilizaTfd: boolean;
+  dataRetornoMedico: string | null;
+  idadeInformada: number | null;
+  statusHigienizacao: StatusHigienizacao;
+  statusOperacional: StatusOperacional;
+  observacoes: string | null;
+}
+
+/** Resposta de POST /api/importacoes/forms e GET /api/importacoes/{id} (``RelatorioImportacaoOut``). */
+export interface IRelatorioImportacao {
+  importacao: IImportacaoResumo;
+  contadores: Record<StatusHigienizacao, number>;
+  /** Campo interno (camelCase) → cabeçalho da planilha reconhecido. */
+  colunasReconhecidas: Record<string, string>;
+  colunasIgnoradas: string[];
+  itens: IItemImportacao[];
+}
