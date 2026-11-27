@@ -9,13 +9,12 @@ Requisitos atendidos: RF003 (exibição), RF009 e CARE-RF003 (relatório de higi
 
 ## What Changes
 
-- `frontend/src/types/exames.ts`: tipos do relatório de importação (`IImportacaoResumo`, `IItemImportacao`, `IRelatorioImportacao`) espelhando `src/schemas/importacoes.py`, e os campos opcionais `descricao`/`updatedAt` devolvidos por `/api/regras`.
-- `frontend/src/stores/importacoes.ts`: upload `multipart/form-data` (`POST /api/importacoes/forms`), histórico (`GET /api/importacoes`) e relatório (`GET /api/importacoes/{id}`), usando o helper `executar` da TASK-012.
-- `frontend/src/views/ImportacaoForms.vue`: arrastar/selecionar arquivo, validação de extensão e tamanho (5 MB, mesmo limite do backend), contadores por status, colunas reconhecidas/ignoradas, filtro por resultado, tabela das linhas com observação e histórico de lotes.
-- `frontend/src/views/RegrasConfiguracao.vue`: três abas sobre a store `regras.ts` da TASK-012 (listar, criar, editar, pausar/ativar e exclusão lógica), com as mesmas validações do Pydantic antes do envio.
-- `frontend/public/modelo_planilha_forms.csv`: planilha de exemplo com os cabeçalhos do Forms e casos válidos, duplicado, divergente e não encontrado no AGHU mock.
-- `frontend/src/services/requisicao.ts`: `mensagemErro` passa a ler também a lista de erros `422` do Pydantic e o `403` do RBAC.
-- Rotas `/importacao` e `/regras` (`requiresAuth`) e links no menu lateral.
+- `frontend/src/stores/regras.ts`: troca o CRUD local (mock) por chamadas a `/api/regras/*`, mantendo a mesma interface da store (`prioridadesAtivas`, `salvarPrioridade`, `alternarAtivo*`, `remover*` etc.) para que a fila e o dashboard prototipados continuem funcionando. Os dados de exemplo ficam só até a primeira carga do backend (`carregarRegras()`); erros do backend (`detail` em texto ou lista `422` do Pydantic, `403` do RBAC) viram a mensagem exibida.
+- `frontend/src/views/RegrasConfiguracao.vue`: carrega as regras do servidor ao abrir, troca "Restaurar Padrão Seed" (que só existia no mock) por "Recarregar do Servidor" e trata erros de pausar/ativar e remover.
+- `frontend/src/types/exames.ts`: tipos do relatório de importação (`IImportacaoResumo`, `IItemImportacao`, `IRelatorioImportacao`) espelhando `src/schemas/importacoes.py`.
+- `frontend/src/stores/importacoes.ts`: upload `multipart/form-data` (`POST /api/importacoes/forms`), histórico (`GET /api/importacoes`) e relatório (`GET /api/importacoes/{id}`).
+- `frontend/src/views/ImportacaoForms.vue`: substitui a simulação por upload real: arrastar/selecionar arquivo com validação de extensão e tamanho (5 MB, mesmo limite do backend), contadores por status, colunas reconhecidas/ignoradas, filtro por resultado, tabela das linhas com observação e histórico de lotes.
+- `frontend/public/modelo_planilha_forms.csv`: planilha de exemplo com os cabeçalhos do Forms e casos válido, duplicado, divergente e não encontrado no AGHU mock.
 
 ## Capabilities
 
@@ -27,16 +26,18 @@ Requisitos atendidos: RF003 (exibição), RF009 e CARE-RF003 (relatório de higi
 
 ## Dependências
 
-- **TASK-012/013 (Pedro) — branch `feat/task-012-013-frontend-fila`:** tipos, `requisicao.ts` e `stores/regras.ts`.
-- **TASK-006/007 (Eduardo) — PR #3 (`feat/fase-2-regras-importacao`):** endpoints `/api/regras/*` e `/api/importacoes/*`.
+- **TASK-006/007 (Eduardo) — já na `master` (PR #3):** endpoints `/api/regras/*` e `/api/importacoes/*`.
+- **Protótipo do frontend (Komata) — já na `master` (PR #4):** layout, rotas, menu e a tela de regras usada como base.
 
 ## Fora de escopo
 
 - Mudanças no backend, nos interceptadores do Axios ou na autenticação.
+- Fila e dashboard (continuam com os dados de exemplo do protótipo).
 - Dashboard e reorganização da navegação (TASK-016).
 - Testes automatizados de frontend (o projeto não tem runner no `frontend/`); a validação é `npm run build` e o fluxo manual no navegador.
 
 ## Impact
 
-- Novos: `frontend/src/stores/importacoes.ts`, `frontend/src/views/ImportacaoForms.vue`, `frontend/src/views/RegrasConfiguracao.vue`, `frontend/public/modelo_planilha_forms.csv`.
-- Alterados: `frontend/src/types/exames.ts`, `frontend/src/services/requisicao.ts`, `frontend/src/router/index.ts`, `frontend/src/layouts/DefaultLayout.vue`.
+- Novos: `frontend/src/stores/importacoes.ts`, `frontend/public/modelo_planilha_forms.csv`.
+- Alterados: `frontend/src/stores/regras.ts`, `frontend/src/types/exames.ts`, `frontend/src/views/ImportacaoForms.vue`, `frontend/src/views/RegrasConfiguracao.vue`.
+- A fila (`FilaExames.vue`) e o dashboard seguem mockados; ligá-los à API é das TASK-013 e TASK-016.

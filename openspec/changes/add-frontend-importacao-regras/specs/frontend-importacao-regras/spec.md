@@ -32,11 +32,11 @@ A tela SHALL listar os lotes de `GET /api/importacoes` e abrir o relatório de q
 - **THEN** o relatório desse lote substitui o exibido
 
 ### Requirement: Regras configuráveis em três abas
-A rota `/regras` SHALL exigir autenticação e exibir as abas Pesos de Prioridade, Regras por Exame e Matriz de Incompatibilidades, cada uma permitindo criar, editar, pausar/ativar (`PUT` com `ativo` invertido) e remover (`DELETE`, exclusão lógica) via `/api/regras/*`. O código identificador MUST NOT ser editável após a criação.
+A rota `/regras` SHALL exigir autenticação e exibir as abas Pesos de Prioridade, Regras por Exame e Matriz de Incompatibilidades, cada uma permitindo criar, editar, pausar/ativar (`PUT` com `ativo` invertido) e remover (`DELETE`, exclusão lógica) via `/api/regras/*`. As regras SHALL ser carregadas do servidor ao abrir a tela.
 
 #### Scenario: Pausar critério
-- **WHEN** o gestor clica em "Pausar" num critério ativo
-- **THEN** a API recebe `PUT /api/regras/prioridades/{id}` com `ativo: false` e a linha passa a mostrar "Pausada"
+- **WHEN** o gestor desliga a chave "Ativo" de um critério
+- **THEN** a API recebe `PUT /api/regras/prioridades/{id}` com `ativo: false` e a chave fica desligada após a resposta
 
 #### Scenario: Par inválido
 - **WHEN** o gestor tenta salvar uma incompatibilidade com o mesmo exame dos dois lados

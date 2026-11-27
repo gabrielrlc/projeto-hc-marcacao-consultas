@@ -2,20 +2,21 @@
 
 - [x] 1.1 Acrescentar em `frontend/src/types/exames.ts` os tipos do relatório de importação e os campos opcionais de `/api/regras`
 - [x] 1.2 Criar `frontend/src/stores/importacoes.ts` (upload, histórico e relatório)
-- [x] 1.3 Ler erros `422` (lista do Pydantic) e `403` em `mensagemErro`
+- [x] 1.3 Trocar a implementação mock de `stores/regras.ts` por `/api/regras/*`, mantendo a interface
+- [x] 1.4 Ler erros `422` (lista do Pydantic) e `403` nas mensagens das stores
 
 ## 2. Importação do Forms (TASK-014)
 
-- [x] 2.1 Criar `ImportacaoForms.vue`: upload por arrastar/selecionar com validação de extensão e tamanho
+- [x] 2.1 Refazer `ImportacaoForms.vue` sobre a API: upload por arrastar/selecionar com validação de extensão e tamanho
 - [x] 2.2 Relatório: contadores por status, colunas reconhecidas/ignoradas, filtro por resultado e tabela das linhas
 - [x] 2.3 Histórico de lotes com abertura do relatório de cada importação
 - [x] 2.4 Planilha de exemplo em `frontend/public/modelo_planilha_forms.csv`
 
 ## 3. Regras configuráveis (TASK-015)
 
-- [x] 3.1 Criar `RegrasConfiguracao.vue` com as abas Pesos de Prioridade, Regras por Exame e Matriz de Incompatibilidades
-- [x] 3.2 Criar/editar em modal, pausar/ativar e remover com confirmação
-- [x] 3.3 Rotas `/importacao` e `/regras` com `requiresAuth` e links no menu lateral
+- [x] 3.1 Carregar as três abas de `RegrasConfiguracao.vue` do servidor ao abrir
+- [x] 3.2 Criar/editar, pausar/ativar e remover persistindo via API, com mensagens de erro
+- [x] 3.3 Trocar "Restaurar Padrão Seed" por "Recarregar do Servidor"
 
 ## 4. Verificação
 
